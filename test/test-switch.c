@@ -939,6 +939,63 @@ START_TEST(tablet_mode_disable_keyboard_on_init)
 }
 END_TEST
 
+START_TEST(tablet_mode_permit_emulated_keys)
+{
+
+	struct litest_device *sw = litest_current_device();
+	struct litest_device *keyboard;
+	struct libinput *li = sw->libinput;
+
+	if (!switch_has_tablet_mode(sw))
+		return;
+
+	keyboard = litest_add_device(li, LITEST_KEYBOARD);
+	litest_drain_events(li);
+
+  // KEY_LEFTMETA works before tablet mode
+
+	litest_keyboard_key(keyboard, KEY_LEFTMETA, true);
+	litest_keyboard_key(keyboard, KEY_LEFTMETA, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+
+  // Switch to tablet mode
+
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_TABLET_MODE,
+			     LIBINPUT_SWITCH_STATE_ON);
+	litest_drain_events(li);
+
+  // KEY_LEFTMETA works during tablet mode when emulated key quirk is enabled
+  // todo: define (and figure out how to set) emulated key quirk on li device
+
+	litest_keyboard_key(keyboard, KEY_LEFTMETA, true);
+	litest_keyboard_key(keyboard, KEY_LEFTMETA, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+
+	litest_drain_events(li);
+
+  // Non-emulated key events ignored in tablet mode
+
+	litest_keyboard_key(keyboard, KEY_A, true);
+	litest_keyboard_key(keyboard, KEY_A, false);
+	litest_assert_empty_queue(li);
+
+
+  // Switch tablet mode off again
+
+	litest_switch_action(sw,
+			     LIBINPUT_SWITCH_TABLET_MODE,
+			     LIBINPUT_SWITCH_STATE_OFF);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_SWITCH_TOGGLE);
+
+	litest_keyboard_key(keyboard, KEY_A, true);
+	litest_keyboard_key(keyboard, KEY_A, false);
+	litest_assert_only_typed_events(li, LIBINPUT_EVENT_KEYBOARD_KEY);
+
+	litest_delete_device(keyboard);
+}
+END_TEST
+
 START_TEST(tablet_mode_disable_trackpoint)
 {
 	struct litest_device *sw = litest_current_device();
@@ -1072,8 +1129,11 @@ litest_setup_tests_lid(void)
 	litest_add_for_device("lid:keypress", lid_key_press, LITEST_GPIO_KEYS);
 
 	litest_add("tablet-mode:touchpad", tablet_mode_disable_touchpad_on_init, LITEST_SWITCH, LITEST_ANY);
+
 	litest_add("tablet-mode:keyboard", tablet_mode_disable_keyboard, LITEST_SWITCH, LITEST_ANY);
 	litest_add("tablet-mode:keyboard", tablet_mode_disable_keyboard_on_init, LITEST_SWITCH, LITEST_ANY);
+  litest_add("tablet-mode:keyboard", tablet_mode_permit_emulated_keys, LITEST_SWITCH, LITEST_ANY);
+
 	litest_add("tablet-mode:trackpoint", tablet_mode_disable_trackpoint, LITEST_SWITCH, LITEST_ANY);
 	litest_add("tablet-mode:trackpoint", tablet_mode_disable_trackpoint_on_init, LITEST_SWITCH, LITEST_ANY);
 
