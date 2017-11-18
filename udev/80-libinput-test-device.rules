@@ -1,1 +1,8 @@
 KERNELS=="*input*", ATTRS{name}=="litest *", ENV{LIBINPUT_TEST_DEVICE}="1"
+
+
+
+# Lenovo X1 Yoga gen 1 (2016)
+# Windows button on screen bezel emulates windows button on internal keyboard.
+# This button needs to be permitted when the keyboard is disabled in tablet mode.
+KERNELS=="*input*", ATTRS{name}=="litest generic keyboard with permitted keys*", ENV{LIBINPUT_ATTR_TABLET_MODE_PERMITTED_KEYS}="1"

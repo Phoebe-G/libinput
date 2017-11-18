@@ -1405,6 +1405,29 @@ fallback_suspend(struct fallback_dispatch *dispatch,
 	evdev_device_suspend(device);
 }
 
+static bool
+has_permitted_keys(struct evdev_device *device)
+{
+	const char *permitted_keys;
+
+	struct udev_device *udev;
+	udev = device->udev_device;
+
+	permitted_keys = udev_device_get_property_value(udev, 
+				"LIBINPUT_ATTR_TABLET_MODE_PERMITTED_KEYS");
+
+	if(permitted_keys && permitted_keys[0] == '1') {
+		evdev_log_info(device, "!! Permitted keys found!\n\n\n");
+	} else {
+		evdev_log_info(device, "!! Permitted keys NOT found!\n\n\n");
+	}
+
+	if (permitted_keys && permitted_keys[0] == '1')
+		return true;
+
+	return false;
+}
+
 static void
 fallback_tablet_mode_switch_event(uint64_t time,
 				  struct libinput_event *event,
@@ -1425,11 +1448,21 @@ fallback_tablet_mode_switch_event(uint64_t time,
 
 	switch (libinput_event_switch_get_switch_state(swev)) {
 	case LIBINPUT_SWITCH_STATE_OFF:
-		fallback_resume(dispatch, device);
+		if (!has_permitted_keys(device)) {
+			fallback_resume(dispatch, device);
+		} else {
+			// todo: remove our keyfilter
+		}
+
 		evdev_log_debug(device, "tablet-mode: resuming device\n");
 		break;
 	case LIBINPUT_SWITCH_STATE_ON:
-		fallback_suspend(dispatch, device);
+		if (!has_permitted_keys(device)) {
+			fallback_suspend(dispatch, device);
+		} else {
+			// todo: set up our keyfilter
+		}
+
 		evdev_log_debug(device, "tablet-mode: suspending device\n");
 		break;
 	}
@@ -1466,7 +1499,13 @@ fallback_keyboard_pair_tablet_mode(struct evdev_device *keyboard,
 	if (evdev_device_switch_get_state(tablet_mode_switch,
 					  LIBINPUT_SWITCH_TABLET_MODE)
 		    == LIBINPUT_SWITCH_STATE_ON)
-		fallback_suspend(dispatch, keyboard);
+	{	
+		if (!has_permitted_keys(keyboard)) {
+			fallback_suspend(dispatch, keyboard);
+		} else {
+			// todo: set up our keyfilter
+		}	
+	}
 }
 
 static void

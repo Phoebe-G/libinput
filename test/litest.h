@@ -269,6 +269,7 @@ enum litest_device_type {
 	LITEST_WACOM_BAMBOO_2FG_PEN,
 	LITEST_WACOM_BAMBOO_2FG_FINGER,
 	LITEST_HP_WMI_HOTKEYS,
+	LITEST_KEYBOARD_PERMITTED_KEYS,
 };
 
 enum litest_device_feature {
